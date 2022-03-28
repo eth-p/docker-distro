@@ -12,12 +12,14 @@ We're going to enter multi-user mode by starting the [init daemon](https://en.wi
 
 ## Preparation
 
+### Make yourself a user.
+
 Before we start, we need to make a user for ourselves:
 
 > **Tip:**  
 > This guide will use the username `me`, but you're welcome to change it.
 
-```
+```bash
 useradd --create-home --uid=1000 --user-group --password="$1$$fts6dWhynnCD9Px.kADTg1" me
 ```
 
@@ -26,10 +28,28 @@ Note that the password is hardcoded.
 The `useradd` command doesn't actually hash the password, and `pam_unix` *expects* a hashed password.  
 Rather than generate one now, we can use the hardcoded password for "`temp`" and change it later.
 
-Now we should update `systemd` and install `sudo`:
+### Install and set up sudo.
 
+With our user done, we need to install sudo:
+
+```bash
+pacman -S --noconfirm sudo
 ```
-pacman -Syu --noconfirm systemd sudo
+
+Then create the `sudo` group, enable it in `/etc/sudoers`, and add yourself to it:
+
+```bash
+groupadd --system sudo
+sed 's/^# %sudo/%sudo/' -i.bak /etc/sudoers
+usermod -a -G me
+```
+
+### Update systemd.
+
+Finally, we should update `systemd` before we enter multi-user mode:
+
+```bash
+pacman -Syu --noconfirm systemd
 ```
 
 You're going to see a bunch of warnings about "current root is not booted".  
