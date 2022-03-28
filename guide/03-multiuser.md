@@ -20,7 +20,7 @@ Before we start, we need to make a user for ourselves:
 > This guide will use the username `me`, but you're welcome to change it.
 
 ```bash
-useradd --create-home --uid=1000 --user-group --password="$1$$fts6dWhynnCD9Px.kADTg1" me
+useradd --create-home --uid=1000 --user-group --password='$1$$fts6dWhynnCD9Px.kADTg1' me
 ```
 
 Note that the password is hardcoded.
@@ -41,7 +41,7 @@ Then create the `sudo` group, enable it in `/etc/sudoers`, and add yourself to i
 ```bash
 groupadd --system sudo
 sed 's/^# %sudo/%sudo/' -i.bak /etc/sudoers
-usermod -a -G me
+usermod -a -G sudo me
 ```
 
 ### Update systemd.
@@ -54,3 +54,32 @@ pacman -Syu --noconfirm systemd
 
 You're going to see a bunch of warnings about "current root is not booted".  
 This is fine, and will be fixed once we start systemd.
+
+
+## Init
+
+With everything set up and ready, it's time to run the `init` process.
+The init process is responsible for setting up system services and handling orphaned processes.
+
+On Arch, `/sbin/init` is provided by `systemd`.
+
+First, let's make sure that the current PID is 1 (init):
+
+```console
+$ echo $$
+1
+```
+
+If the PID is 1, we can `exec /sbin/init` to start running our distro:
+
+```bash
+exec /sbin/init
+```
+
+> **Note:**  
+> Once `init` is started, you will not be able to CTRL+C out of `docker run`.
+> Further work should be done through `docker exec -it did` (or whichever container name).
+
+> **Tip:**  
+> Want to shut down the container?
+> From a root shell (inside the container), run `shutdown now` to shut down systemd and stop the container.
