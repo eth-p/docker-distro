@@ -1,0 +1,10 @@
+name: Docker Distro Image
+on: [push]
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+      - name: Build the image
+        run: docker build -f files/dockerfiles/docker-distro/Dockerfile -t docker-distro
