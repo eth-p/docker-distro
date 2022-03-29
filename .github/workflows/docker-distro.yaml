@@ -33,6 +33,7 @@ jobs:
         # if: github.event_name == 'release'
         run: |
           version="${{ github.ref }}"
+          version="${version##*/}"
           docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
 
       - name: Log into registry ${{ env.REGISTRY }}
@@ -47,5 +48,6 @@ jobs:
         # if: github.event_name == 'release'
         run: |
           version="${{ github.ref }}"
+          version="${version##*/}"
           docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
 
