@@ -1,10 +1,46 @@
-name: Docker Distro Image
-on: [push]
+name: docker-distro
+
+on:
+  push:
+    branches: 
+      - $default-branch
+      - *
+    tags:
+      - v*
+  pull_request:
+    branches: 
+      - $default-branch
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
 jobs:
   Build:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
     runs-on: ubuntu-latest
     steps:
+
       - name: Check out repository
         uses: actions/checkout@v2
+      
       - name: Build the image
         run: docker build files/dockerfiles/docker-distro -t docker-distro
+
+      - name: Tag the image
+        if: github.event_name != 'pull_request'
+        run: |
+          branch="${GITHUB_REF##*/}"
+          echo "$branch"
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
