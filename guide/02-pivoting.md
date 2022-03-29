@@ -9,7 +9,7 @@ The way this works is by using the [pivot_root(2) syscall](https://man7.org/linu
 In simple terms, it _swaps_ the `/` mountpoint of the calling process (the container) with another one (our distro).
 
 > **Noob tip:**  
-> If you want to skip this step, you can use [docker-distro-init](./files/dockerfiles/docker-distro-init) docker image.
+> If you want to skip this step, you can use [docker-distro](./files/dockerfiles/docker-distro) docker image.
 > Just make sure to follow the instructions to ensure it has the correct permissions and bind mount!
 
 

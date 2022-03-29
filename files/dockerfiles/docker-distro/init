@@ -1,0 +1,54 @@
+#!/bin/zsh
+zmodload zsh/zutil
+zparseopts -D -E -F - \
+    -root:=arg_root \
+    -debug=arg_debug \
+    -shell=arg_shell
+
+end_opts=$@[(i)(--|-)]
+set -- "${@[0,end_opts-1]}" "${@[end_opts+1,-1]}"
+set -euo pipefail
+
+if test ${#arg_shell[@]} -eq 0 && test ${#arg_debug[@]} -eq 0; then
+    arg_shell=( --shell )
+fi
+
+if test ${#arg_debug[@]} -gt 0; then
+    echo "===== Distro in Docker =====" 1>&2
+    set | grep "^arg_" | sed 's/^\([a-z_]*\)=( *[^ ]* */\1=/; s/)$//' 1>&2
+fi
+
+live="/live"
+if test ${#arg_root[@]} -gt 0; then
+    live="${arg_root[2]}"
+fi
+
+run_bin=/sbin/init
+
+# If `--shell`, then find a suitable shell.
+if test ${#arg_shell} -gt 0; then
+    { chroot "$live" zsh --help &>/dev/null && run_bin=zsh; } \
+        || { chroot "$live" bash --help &>/dev/null && run_bin=bash; } \
+        || run_bin=sh
+fi
+
+# Enable debug shellopt.
+if test ${#arg_debug[@]} -gt 0; then
+    set -x
+fi
+
+# Remount the new root to enable setuid.
+mount -n -o remount,suid "$live"
+
+# Bind mount the filesystems provided by Docker.
+awk '{ print $2 }' /proc/mounts \
+    | grep -v '^/$' | grep -v "^${live}\$" \
+    | xargs -i{} mount --bind "{}" "$live{}"
+
+# Pivot the root and execute the binary.
+if ! test -d "$live/boot/container"; then
+    mkdir -p "$live/boot/container"
+fi
+
+pivot_root "$live" "$live/boot/container"
+exec "$run_bin"

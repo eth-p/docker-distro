@@ -6,7 +6,7 @@ That's great for containerized programs, but not for an entire distro.
 We're going to enter multi-user mode by starting the [init daemon](https://en.wikipedia.org/wiki/Init).
 
 > **Warning:**  
-> This guide is using Arch as a base distro.  
+> This guide is using Arch as a base distro, where the init daemon is provided by `systemd`.  
 > If you're using another distro, you're going to have to adapt to the differences.
 
 
@@ -56,12 +56,10 @@ You're going to see a bunch of warnings about "current root is not booted".
 This is fine, and will be fixed once we start systemd.
 
 
-## Init
+## The Init Daemon
 
-With everything set up and ready, it's time to run the `init` process.
-The init process is responsible for setting up system services and handling orphaned processes.
-
-On Arch, `/sbin/init` is provided by `systemd`.
+With everything set up and ready, it's time to run the `init` daemon.
+The init daemon is responsible for setting up system services, handling orphaned processes, and starting the daemons necessary to run multi-user system.
 
 First, let's make sure that the current PID is 1 (init):
 
@@ -70,7 +68,7 @@ $ echo $$
 1
 ```
 
-If the PID is 1, we can `exec /sbin/init` to start running our distro:
+If the PID is 1, we can `exec /sbin/init` to replace our running shell with the init daemon:
 
 ```bash
 exec /sbin/init
