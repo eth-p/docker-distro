@@ -11,7 +11,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: ${{ github.repository }}/init
 
 jobs:
   Build:
@@ -30,15 +30,20 @@ jobs:
         run: docker build files/dockerfiles/docker-distro -t docker-distro
 
       - name: Tag the image
-        if: github.event_name == 'release'
+        if: github.event_name != 'pull_request'
         run: |
           version="${{ github.ref }}"
           version="${version##*/}"
-          docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
-          docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":latest
+          
+          if [ "${version:0:1}" = "v" ]; then
+            docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
+            docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]
+            docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
+          fi
 
       - name: Log into registry ${{ env.REGISTRY }}
-        if: github.event_name == 'release'
+        if: github.event_name != 'pull_request'
         uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
         with:
           registry: ${{ env.REGISTRY }}
@@ -46,10 +51,15 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push the image
-        if: github.event_name == 'release'
+        if: github.event_name != 'pull_request'
         run: |
           version="${{ github.ref }}"
           version="${version##*/}"
-          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
-          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":latest
+          
+          if [ "${version:0:1}" = "v" ]; then
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
+          fi
 
