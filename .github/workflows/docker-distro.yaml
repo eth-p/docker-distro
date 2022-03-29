@@ -38,7 +38,7 @@ jobs:
           if [ "${version:0:1}" = "v" ]; then
             docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
             docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
-          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]; then
             docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
           fi
 
@@ -59,7 +59,7 @@ jobs:
           if [ "${version:0:1}" = "v" ]; then
             docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
             docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
-          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]; then
             docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
           fi
 
