@@ -23,7 +23,7 @@ if test ${#arg_root[@]} -gt 0; then
     live="${arg_root[2]}"
 fi
 
-run_bin=/sbin/init
+run_bin="$live/sbin/init"
 
 # If `--shell`, then find a suitable shell.
 if test ${#arg_shell} -gt 0; then
