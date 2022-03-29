@@ -10,7 +10,7 @@ set -- "${@[0,end_opts-1]}" "${@[end_opts+1,-1]}"
 set -euo pipefail
 
 if test ${#arg_shell[@]} -eq 0 && test ${#arg_debug[@]} -eq 0; then
-    arg_shell=( --shell )
+    arg_debug=( --debug )
 fi
 
 if test ${#arg_debug[@]} -gt 0; then
