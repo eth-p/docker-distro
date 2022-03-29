@@ -30,14 +30,15 @@ jobs:
         run: docker build files/dockerfiles/docker-distro -t docker-distro
 
       - name: Tag the image
-        # if: github.event_name == 'release'
+        if: github.event_name == 'release'
         run: |
           version="${{ github.ref }}"
           version="${version##*/}"
           docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
+          docker tag docker-distro "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":latest
 
       - name: Log into registry ${{ env.REGISTRY }}
-        # if: github.event_name == 'release'
+        if: github.event_name == 'release'
         uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
         with:
           registry: ${{ env.REGISTRY }}
@@ -45,9 +46,10 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Push the image
-        # if: github.event_name == 'release'
+        if: github.event_name == 'release'
         run: |
           version="${{ github.ref }}"
           version="${version##*/}"
           docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":"${version:1}"
+          docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/init":latest
 
