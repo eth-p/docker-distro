@@ -1,4 +1,4 @@
-# docker-distro
+# ghcr.io/eth-p/docker-distro/init
 
 A Docker image for pivoting the root and running the init daemon inside a Docker container.
 
@@ -29,7 +29,7 @@ docker run -it --name "did" \
     --cap-add SYS_ADMIN \
     --cap-add CHROOT \
     --mount type=bind,source=/path/to/your/distro/files,target=/live \
-    docker-distro --shell
+    ghcr.io/eth-p/docker-distro/init --shell
 ```
 
 Run the distro's init daemon:
@@ -39,5 +39,5 @@ docker run -it --name "did" \
     --cap-add SYS_ADMIN \
     --cap-add CHROOT \
     --mount type=bind,source=/path/to/your/distro/files,target=/live \
-    docker-distro
+    ghcr.io/eth-p/docker-distro/init
 ```
