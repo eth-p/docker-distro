@@ -17,6 +17,17 @@ Common examples of such programs are,
 
 This can only be solved by remounting the filesystem with the `suid` option:
 
-```console
-$ mount -n -o remount,suid /path/to/fs
+```bash
+mount -n -o remount,suid /path/to/fs
+```
+
+## The `systemd-firstboot.service` will hang the init daemon [fixable]
+
+This service will hang waiting for user input from the physical console, preventing system initialization.
+
+Luckily, you can just diable it:
+
+
+```bash
+systemctl disable systemd-firstboot.service
 ```

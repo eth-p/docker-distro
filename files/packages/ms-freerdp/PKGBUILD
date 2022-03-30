@@ -1,0 +1,66 @@
+# Based on: https://github.com/archlinux/svntogit-community/blob/packages/freerdp/trunk/PKGBUILD
+_name=FreeRDP-mirror
+_commit=c574044a10003e50453acb4cf42801c5833fb572
+
+pkgname=freerdp
+pkgver="2.4.0_microsoft"
+pkgrel="1"
+epoch="500"
+pkgdesc="Free implementation of the Remote Desktop Protocol (RDP)"
+arch=(x86_64)
+url='https://github.com/microsoft/FreeRDP-mirror/'
+license=(Apache)
+depends=('dbus-glib' 'glibc' 'gstreamer' 'gst-plugins-base-libs' 'libcups' 'libgssglue'
+libx11 libxcursor libxext libxdamage libxfixes libxkbcommon libxi libxinerama
+libxkbfile libxrandr libxrender libxtst openssl pcsclite wayland)
+makedepends=(alsa-lib cmake docbook-xsl ffmpeg icu krb5 libjpeg-turbo libpulse
+libusb pam systemd-libs xmlto xorgproto)
+provides=(libfreerdp2.so libfreerdp-client2.so libfreerdp-server2
+libfreerdp-shadow2.so libfreerdp-shadow-subsystem2.so libwinpr2.so
+libwinpr-tools2.so libuwac0.so)
+source=(
+  $pkgname-$_commit.tar.gz::https://github.com/microsoft/$pkgname-mirror/archive/$_commit.tar.gz
+)
+
+sha512sums=('70056e591dd52fcea9eeca2326c8b681b80d46ed2530fb165b1f58e4f9fad1518b59ff3a0342a9ff25255384ce28c0cf6007b32142064850a882d68e1270f0a2')
+
+prepare() {
+  cd "$srcdir"
+
+  # PATCH: Remove `avcodec_register_all()` calls.
+  # These were deprecated in ffmpeg 4.0, and are not present with the version of ffmpeg included in Arch.
+  grep -rnw . -e 'avcodec_register_all()' | cut -d':' -f1 | xargs -i{} sed -i "s/avcodec_register_all()/\/\/ avcodec_register_all()/" {}
+}
+
+build() {
+  cmake -DCMAKE_INSTALL_PREFIX=/usr \
+        -DCMAKE_INSTALL_LIBDIR=lib \
+        -DCMAKE_BUILD_TYPE=None \
+        -DPROXY_PLUGINDIR=/usr/lib/freerdp2/server/proxy/plugins \
+        -DWITH_DSP_FFMPEG=ON \
+        -DWITH_FFMPEG=ON \
+        -DWITH_PULSE=ON \
+        -DWITH_CUPS=ON \
+        -DWITH_PCSC=ON \
+        -DWITH_ICU=ON \
+        -DWITH_JPEG=ON \
+        -DWITH_SERVER=ON \
+        -DWITH_SWSCALE=ON \
+        -DWITH_CHANNELS=ON \
+        -DWITH_CLIENT_CHANNELS=ON \
+        -DWITH_SERVER_CHANNELS=ON \
+        -DCHANNEL_URBDRC_CLIENT=ON \
+        -Wno-dev \
+        -B build \
+        -S $_name-$_commit
+  make VERBOSE=1 -C build
+}
+
+package() {
+  depends+=(libasound.so libavcodec.so libavutil.so libicuuc.so libjpeg.so
+  libpam.so libpulse.so libswscale.so libswresample.so libsystemd.so
+  libusb-1.0.so)
+
+  make DESTDIR="$pkgdir" install -C build
+  install -vDm 644 $_name-$_commit/{ChangeLog,README.md} -t "$pkgdir/usr/share/doc/$pkgname"
+}

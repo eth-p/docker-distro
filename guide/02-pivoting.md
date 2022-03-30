@@ -30,6 +30,7 @@ Let's create the container with those requirements:
 ```bash
 docker run -it --name "did" \
     --privileged --security-opt="no-new-privileges:false" --cap-add ALL --cap-drop SYS_BOOT \
+    --network br0 \
     --mount type=bind,source=/mnt/did,target=/live \
     alpine
 ```
