@@ -42,8 +42,8 @@ mount -n -o remount,suid "$live"
 
 # Bind mount the filesystems provided by Docker.
 awk '{ print $2 }' /proc/mounts \
-    | grep -v '^/$' | grep -v "^${live}\$" \
-    | xargs -i{} mount --bind "{}" "$live{}"
+    | grep -v '^/$' | grep -v "^${live}$" | grep -v "^${live}/" \
+    | xargs -i{} mount --bind "{}" "$live{}" 
 
 # Pivot the root and execute the binary.
 if ! test -d "$live/boot/container"; then
