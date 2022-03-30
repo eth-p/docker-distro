@@ -1,0 +1,55 @@
+# Based on: https://github.com/archlinux/svntogit-community/tree/packages/weston/trunk
+_name=weston-mirror
+_commit=52f13ac77cb24f4e508b3d4fa6178c59bcc48ca2
+
+pkgname=weston
+pkgver="9.0.0_microsoft"
+pkgrel="1"
+epoch="500"
+pkgdesc='Reference implementation of a Wayland compositor'
+arch=(x86_64)
+url='https://github.com/microsoft/weston-mirror/'
+license=(MIT)
+
+depends=(
+  'glibc' 'wayland' 'libxkbcommon' 'libinput' 'libunwind' 'pixman'
+  'libdrm' 'pam' 'systemd-libs' 'cairo' 'libpng' 'libjpeg-turbo' 'libwebp'
+  'mesa' 'libegl' 'libgles' 'glib2' 'pango' 'lcms2' 'mtdev' 'libx11'
+  'libxcb' 'dbus' 'libva' 'libxcursor' 'colord'
+)
+makedepends=(
+  'wayland-protocols'
+  'meson'
+  'ninja'
+  'freerdp'
+)
+optdepends=(
+  'freerdp: support rdp backend'
+)
+
+options=(!lto)
+source=(
+  "https://github.com/microsoft/weston-mirror/archive/$_commit.tar.gz"
+)
+sha512sums=(
+  '153a0414d96fc4a463cc16edb0fb10d68f582281e3a34187d548766a1fdaad0aaa3e57fac2d82b2049da6acbaa6fb41487e46bdc6d91cfb11aa5efc7edd3a324'
+)
+
+build() {
+  arch-meson "$_name-$_commit" build \
+    --libexec=lib/weston -D b_lto=false -D pipewire=false
+  ninja -C build
+
+  sed "weston.service.template" \
+    -e "s/{{ *UID *}}/`id -u`/" \
+    -e "s/{{ *USER *}}/`whoami`/" \
+    > "$srcdir/weston.service"
+}
+
+package() {
+  DESTDIR="$pkgdir" meson install -C build
+  # license
+  install -Dm644 "$_name-$_commit/COPYING" "$pkgdir/usr/share/licenses/$pkgname/COPYING"
+}
+
+# vim:set ts=2 sw=2 et:

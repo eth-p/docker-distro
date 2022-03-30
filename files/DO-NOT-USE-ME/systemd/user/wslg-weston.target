@@ -1,0 +1,5 @@
+[Unit]
+Description=Weston RDP (wslg)
+
+BindsTo=wslg-weston.target
+Before=wslg-weston.target

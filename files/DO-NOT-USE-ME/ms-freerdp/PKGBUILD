@@ -10,19 +10,29 @@ pkgdesc="Free implementation of the Remote Desktop Protocol (RDP)"
 arch=(x86_64)
 url='https://github.com/microsoft/FreeRDP-mirror/'
 license=(Apache)
-depends=('dbus-glib' 'glibc' 'gstreamer' 'gst-plugins-base-libs' 'libcups' 'libgssglue'
-libx11 libxcursor libxext libxdamage libxfixes libxkbcommon libxi libxinerama
-libxkbfile libxrandr libxrender libxtst openssl pcsclite wayland)
-makedepends=(alsa-lib cmake docbook-xsl ffmpeg icu krb5 libjpeg-turbo libpulse
-libusb pam systemd-libs xmlto xorgproto)
-provides=(libfreerdp2.so libfreerdp-client2.so libfreerdp-server2
-libfreerdp-shadow2.so libfreerdp-shadow-subsystem2.so libwinpr2.so
-libwinpr-tools2.so libuwac0.so)
-source=(
-  $pkgname-$_commit.tar.gz::https://github.com/microsoft/$pkgname-mirror/archive/$_commit.tar.gz
+
+depends=(
+  'dbus-glib' 'glibc' 'gstreamer' 'gst-plugins-base-libs' 'libcups' 'libgssglue'
+  'libx11' 'libxcursor' 'libxext' 'libxdamage' 'libxfixes' 'libxkbcommon' 'libxi' 'libxinerama'
+  'libxkbfile' 'libxrandr' 'libxrender' 'libxtst' 'openssl' 'pcsclite' 'wayland'
+)
+makedepends=(
+  'alsa-lib' 'cmake' 'docbook-xsl' 'ffmpeg' 'icu' 'krb5' 'libjpeg-turbo' 'libpulse'
+  'libusb' 'pam' 'systemd-libs' 'xmlto' 'xorgproto'
 )
 
-sha512sums=('70056e591dd52fcea9eeca2326c8b681b80d46ed2530fb165b1f58e4f9fad1518b59ff3a0342a9ff25255384ce28c0cf6007b32142064850a882d68e1270f0a2')
+provides=(
+  'libfreerdp2.so' 'libfreerdp-client2.so' 'libfreerdp-server2'
+  'libfreerdp-shadow2.so' 'libfreerdp-shadow-subsystem2.so' 'libwinpr2.so'
+  'libwinpr-tools2.so' 'libuwac0.so'
+)
+
+source=(
+  "$pkgname-$_commit.tar.gz"::"https://github.com/microsoft/$pkgname-mirror/archive/$_commit.tar.gz"
+)
+sha512sums=(
+  '70056e591dd52fcea9eeca2326c8b681b80d46ed2530fb165b1f58e4f9fad1518b59ff3a0342a9ff25255384ce28c0cf6007b32142064850a882d68e1270f0a2'
+)
 
 prepare() {
   cd "$srcdir"

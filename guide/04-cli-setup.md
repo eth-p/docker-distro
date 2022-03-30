@@ -35,7 +35,7 @@ This includes manual pages, localizations, and documentation.
 If you want these, run the following commands:
 
 ```bash
-sudo sed -i '/^NoExtract/d' /etc/pacman.conf
+sudo sed -i 's/^NoExtract/#NoExtract/' /etc/pacman.conf
 sudo bash -c 'pacman -Qqn | pacman -S --noconfirm -'  # <-- reinstalls all packages
 ```
 
@@ -60,4 +60,15 @@ sudo pacman -S --noconfirm \
     make autoconf automake \
     pkgconfig fakeroot \
     gcc
+```
+
+## Aur Helper
+
+If you want an easier way to install packages from AUR, you can install `trizen`:
+
+```bash
+sudo pacman -S --needed base-devel git
+git clone https://aur.archlinux.org/trizen.git
+cd trizen
+makepkg -si
 ```

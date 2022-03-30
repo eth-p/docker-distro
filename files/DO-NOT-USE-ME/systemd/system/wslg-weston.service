@@ -1,0 +1,43 @@
+[Unit]
+Description=Weston RDP (wslg)
+
+# Make sure we are started after logins are permitted.
+After=systemd-user-sessions.service
+
+# if you want you can make it part of the graphical session
+# Before=graphical.target
+
+# not necessary but just in case
+#ConditionPathExists=/dev/tty7
+
+[Service]
+Type=simple
+Environment=XDG_SESSION_TYPE=wayland
+ExecStart=/usr/bin/systemctl --wait --user start wslg-weston.target
+
+# The user to run the session as. Pick one!
+User=ethan
+Group=ethan
+
+# Set up a full user session for the user, required by Weston.
+PAMName=login
+
+# A virtual terminal is needed.
+TTYPath=/dev/tty7
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+# Fail to start if not controlling the tty.
+StandardInput=tty-fail
+
+# Defaults to journal, in case it doesn't adjust it accordingly
+#StandardOutput=journal
+StandardError=journal
+
+# Log this user with utmp, letting it show up with commands 'w' and 'who'.
+UtmpIdentifier=tty7
+UtmpMode=user
+
+[Install]
+WantedBy=graphical.target

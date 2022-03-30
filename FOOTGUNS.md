@@ -31,3 +31,16 @@ Luckily, you can just diable it:
 ```bash
 systemctl disable systemd-firstboot.service
 ```
+
+
+## The `systemd-networkd-wait-online.service` will always timeout [workaround]
+
+Whenever an installed service relies on `network-online.target`, the `systemd-networkd-wait-online.service` will be started.
+This service will **never** complete, despite networking being online and available for both incoming and outbound connections.
+
+The current solution to this is to just symlink the binary to `/bin/true`:
+
+```bash
+sudo mv /lib/systemd/systemd-networkd-wait-online /lib/systemd/systemd-networkd-wait-online.real
+sudo ln -s /bin/true /lib/systemd/systemd-networkd-wait-online
+```
