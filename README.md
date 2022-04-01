@@ -24,3 +24,5 @@ A guide and environment for creating a working Linux distro inside a Docker cont
 [01: Bootstrapping a Distro Inside Docker](./guide/01-bootstrap.md)  
 [02: Pivoting Into a Running Distro](./guide/02-pivoting.md)  
 [03: Migrate to Multi-user Mode](./guide/03-multiuser.md)  
+[04: Basic Command-Line Setup](./guide/04-cli-setup.md)  
+[05: Networking Goodies](./guide/05-networking.md)  

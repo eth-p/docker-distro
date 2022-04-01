@@ -72,3 +72,7 @@ git clone https://aur.archlinux.org/trizen.git
 cd trizen
 makepkg -si
 ```
+
+
+## Next
+[\[05: Networking Goodies\]](./05-networking.md)
