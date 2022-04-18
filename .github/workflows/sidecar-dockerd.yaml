@@ -1,0 +1,65 @@
+name: docker-distro - sidecar dockerd
+
+on:
+  release:
+    types: [published]
+  push:
+    branches: ['*']
+    tags: ['v*']
+  pull_request:
+    branches: [$default-branch]
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/sidecar-dockerd
+
+jobs:
+  Build:
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Check out repository
+        uses: actions/checkout@v2
+      
+      - name: Build the image
+        run: docker build files/dockerfiles/sidecar-dockerd -t sidecar-dockerd
+
+      - name: Tag the image
+        if: github.event_name != 'pull_request'
+        run: |
+          version="${{ github.ref }}"
+          version="${version##*/}"
+          
+          if [ "${version:0:1}" = "v" ]; then
+            docker tag sidecar-dockerd "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
+            docker tag sidecar-dockerd "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]; then
+            docker tag sidecar-dockerd "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
+          fi
+
+      - name: Log into registry ${{ env.REGISTRY }}
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@28218f9b04b4f3f62068d7b6ce6ca5b26e35336c
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push the image
+        if: github.event_name != 'pull_request'
+        run: |
+          version="${{ github.ref }}"
+          version="${version##*/}"
+          
+          if [ "${version:0:1}" = "v" ]; then
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":"${version:1}"
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":latest
+          elif [ "${version}" = "${{ github.event.repository.default_branch }}" ]; then
+            docker push "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}":snapshot-"${version}"
+          fi
+
