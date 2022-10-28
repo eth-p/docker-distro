@@ -2,7 +2,7 @@ FROM ubuntu:latest
 
 # Install Docker and OpenSSH.
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install curl openssh && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install curl openssh-client && \
     curl -o- https://get.docker.com/ | bash - && \
     apt-get clean
 
