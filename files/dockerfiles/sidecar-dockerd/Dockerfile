@@ -8,7 +8,7 @@ RUN apt-get update && \
 
 # Symlink /var/lib/docker to /var/docker.
 # This is needed because `docker plugin` doesn't respect the data-root.
-ln -s "/var/docker" /var/lib/docker
+RUN ln -s "/var/docker" /var/lib/docker
 
 # Copy the start script.
 COPY start.sh /
