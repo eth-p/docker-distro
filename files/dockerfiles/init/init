@@ -47,8 +47,8 @@ awk '{ print $2 }' /proc/mounts \
     | xargs -i{} mount --bind "{}" "$live{}" 
 
 # Ensure the new root /sys is symlinked to the docker sysfs.
-if test -d "/sys"; then rmdir /sys; fi
-if ! test -L "/sys"; then ln -s "/boot/container/sys" "$live/sys"; fi
+if test -d "${live}/sys"; then rmdir "${live}/sys"; fi
+if ! test -L "${live}/sys"; then ln -s "/boot/container/sys" "${live}/sys"; fi
 
 # Pivot the root and execute the binary.
 if ! test -d "$live/boot/container"; then
