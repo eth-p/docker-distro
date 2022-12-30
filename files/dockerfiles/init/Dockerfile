@@ -5,4 +5,4 @@ RUN apk add --no-cache zsh
 COPY init /init
 RUN chmod 755 /init
 
-ENTRYPOINT [ "/init" ]
+ENTRYPOINT [ "/init", "--debug" ]
