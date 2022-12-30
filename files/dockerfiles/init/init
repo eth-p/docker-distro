@@ -9,51 +9,142 @@ end_opts=$@[(i)(--|-)]
 set -- "${@[0,end_opts-1]}" "${@[end_opts+1,-1]}"
 set -euo pipefail
 
-if test ${#arg_shell[@]} -eq 0 && test ${#arg_debug[@]} -eq 0; then
-    arg_debug=( --debug )
-fi
-
-if test ${#arg_debug[@]} -gt 0; then
-    echo "===== Distro in Docker =====" 1>&2
-    set | grep "^arg_" | sed 's/^\([a-z_]*\)=( *[^ ]* */\1=/; s/)$//' 1>&2
-fi
-
+# Defaults:
+pivot_destination="/boot/container"
+pivot_shutdown_hook="/boot/cleanup.sh"
 live="/live"
-if test ${#arg_root[@]} -gt 0; then
-    live="${arg_root[2]}"
-fi
-
+run_shell=''
 run_bin=/sbin/init
 
-# If `--shell`, then find a suitable shell.
-if test ${#arg_shell} -gt 0; then
-    { chroot "$live" zsh --help &>/dev/null && run_bin=zsh; } \
-        || { chroot "$live" bash --help &>/dev/null && run_bin=bash; } \
-        || run_bin=sh
+# Check for the `--debug` argument.
+# This will print what is happening.
+@@() { "$@"; }
+@PRINT() { :; }
+@DOING() { :; }
+if test ${#arg_debug[@]} -gt 0; then
+    echo "===== Distro in Docker =====" 1>&2
+    echo "Created by Ethan P. <https://github.com/eth-p>" 1>&2
+    @@() { printf '%q ' "$@" 1>&2; printf "\n" 1>&2; "$@" }
+    @PRINT() { printf "$1\n" "${@:2}" 1>&2; }
+    @DOING() { @PRINT "\x1B[34m==> $1\x1B[0m" "${@:2}"; }
 fi
 
-# Enable debug shellopt.
-if test ${#arg_debug[@]} -gt 0; then
-    set -x
+# Check for the `--root=[path]` argument.
+# This will change the path for the live root.
+if test ${#arg_root[@]} -gt 0; then
+    live="${arg_root[2]}"
+    @PRINT "Using root: %s" "$live"
 fi
+
+# Check for the `--shell` argument.
+# This will exec into a shell instead of the init daemon.
+# Precedence:
+#   zsh > bash > sh
+if test ${#arg_shell} -gt 0; then
+    try_shell() { chroot "$live" "$1" --help &>/dev/null }
+    for run_shell in "zsh" "bash" "sh"; do
+        if try_shell "$run_shell"; then
+            break
+        fi
+    done
+fi
+
+# -----------------------------------------------------------------------------
+# Environment Setup
+# -----------------------------------------------------------------------------
+
+# Select the init executable.
+if [ -n "$run_shell" ]; then
+    @PRINT "Using shell: %s" "$run_shell"
+    run_bin="$run_shell"
+else
+    @PRINT "Using init daemon: %s" "$run_bin"
+    if [ $$ -ne 1 ]; then
+        printf "\x1B[33mWarning: Not PID 1.\n" 1>&2
+        printf "Init daemon will probably fail.\x1B[0m\n" 1>&2
+    fi
+fi
+
+# -----------------------------------------------------------------------------
+# Filesystem Setup
+# -----------------------------------------------------------------------------
 
 # Remount the new root to enable setuid.
 mount -n -o remount,suid "$live"
 
-# Bind mount the filesystems provided by Docker.
-# Skip the new root and sysfs.
-awk '{ print $2 }' /proc/mounts \
-    | grep -v '^/$' | grep -v "^${live}$" | grep -v "^${live}/" | grep -v "^/sys/" | grep -v "^/sys$" \
-    | xargs -i{} mount --bind "{}" "$live{}" 
+# Scan the mounted filesystems provided by Docker.
+# 
+# We're going to move the mount points, so we only want the ones at the top
+# of the filesystem tree. Any recursive mounts will be inherited naturally.
+# Do not move `/` (the container root) or `/live` (the pivot root).
+@DOING "Finding mount points..."
+mountpoints=()
+mountpoints_filter="/|${live}|${live}/.*"
+while read -r mountpoint; do
+    if [[ "$mountpoint" =~ ^($mountpoints_filter)\$ ]]; then continue; fi
+    mountpoints+=("$mountpoint")
+    mountpoints_filter+="|${mountpoint}/.*"
+done < <(awk '$2!="/"{print $2}' /proc/mounts | sort)
 
-# Ensure the new root /sys is symlinked to the docker sysfs.
-if test -d "${live}/sys"; then rmdir "${live}/sys"; fi
-if ! test -L "${live}/sys"; then ln -s "/boot/container/sys" "${live}/sys"; fi
+# Move the filesystems in order of first appearance.
+@DOING "Moving mount points..."
+cat >"${live}${pivot_shutdown_hook}" <<EOF
+#!/bin/sh
+echo "Distro in Docker: Shutdown"
+set -x
+EOF
 
-# Pivot the root and execute the binary.
-if ! test -d "$live/boot/container"; then
-    mkdir -p "$live/boot/container"
+while read -r mountpoint; do
+    if ! (($mountpoints[(Ie)$mountpoint])); then
+        # Skip the entry if it's a recursive mount.
+        continue;
+    fi
+
+    # Determine source and new destination path for the mount.
+    src="$mountpoint"
+    dest="${live}${mountpoint}"
+
+    # Ensure the mount point exists on the live filesystem. (files)
+    if [[ -f "$src" && ! -e "$dest" ]]; then
+        if [ -L "$dest" ]; then
+            @@ unlink "$dest"
+        elif [ -d "$dest" ]; then
+            @@ rmdir "$dest"
+        fi
+
+        @@ touch "$dest"
+        printf "rm %q" "${dest:${#live}}" >>"${live}${pivot_shutdown_hook}"
+    fi
+
+    # Ensure the mount point exists on the live filesystem. (directories)
+    if [[ -d "$src" && ! -d "$dest" ]]; then
+        if [ -L "$dest" ]; then
+            @@ rm "$dest"
+        else
+            printf "\x1B[31mNeed directory mount point at %s, but is already a file\x1B[0m\n" "$dest"
+            exit 1
+        fi
+
+        @@ mkdir "$dest"
+        printf "rmdir %q" "${dest:${#live}}" >>"${live}${pivot_shutdown_hook}"
+    fi
+
+    # Move the mount.
+    @@ mount --move "$src" "$dest"
+done < <(awk '$2!="/"{print $2}' /proc/mounts | sort)
+
+# -----------------------------------------------------------------------------
+# Pivot & Exec
+# -----------------------------------------------------------------------------
+
+# Pivot the root.
+@DOING "Pivoting root to live filesystem..."
+if ! test -d "${live}${pivot_destination}"; then
+    @@ mkdir -p "${live}${pivot_destination}"
 fi
 
-pivot_root "$live" "$live/boot/container"
+@@ pivot_root "$live" "${live}${pivot_destination}"
+
+# Execute the init daemon.
+@DOING "Executing init daemon..."
 exec "$run_bin"
