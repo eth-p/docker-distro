@@ -31,10 +31,18 @@ If everything went well, you should she the following in your terminal:
  extra downloading...
  community downloading...
  ```
+ 
+### Update the keyring.
+
+Next up, we need to update the GPG keys used for checking package integrity.
+
+```bash
+pacman-key --refresh-keys
+```
 
 ### Update the distro packages.
 
-With the package databases updated, it's now possible to update the packages that came with the `archlinux` image that your distro was based off of:
+With the package databases updated and the keyring refreshed, it's now possible to update the packages that came with the `archlinux` image that your distro was based off of:
 
 ```bash
 pacman -Su --noconfirm
