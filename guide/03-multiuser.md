@@ -37,8 +37,14 @@ If everything went well, you should she the following in your terminal:
 Next up, we need to update the GPG keys used for checking package integrity.
 
 ```bash
+pacman -S --noconfirm archlinux-keyring
+rm -rf /etc/pacman.d/gnupg/*
+pacman-key --init
+pacman-key --populate archlinux
 pacman-key --refresh-keys
 ```
+
+Keep in mind that this might take a while.
 
 ### Update the distro packages.
 
