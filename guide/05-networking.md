@@ -22,7 +22,7 @@ sudo sed -i 's/^#MulticastDNS/MulticastDNS/' /etc/systemd/resolved.conf
 Next, create a `.network` file for your `eth0` network:
 
 ```bash
-cat > /etc/systemd/network/eth0.network <<<EOF
+cat > /etc/systemd/network/eth0.network <<EOF
 [Match]
 Name=eth0
 
