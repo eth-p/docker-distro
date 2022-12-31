@@ -169,4 +169,4 @@ Congrats!
 
 
 ## Next
-[\[04: Migrate to Multi-user Mode\]](./03-multiuser.md)
+[\[04: Basic Command-Line Setup\]](./04-cli-setup.md)
