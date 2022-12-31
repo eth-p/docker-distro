@@ -1,0 +1,13 @@
+[Unit]
+Description=GPU-accelerated X server
+After=multi-user.target decapx-drivers.service
+Requires=multi-user.target decapx-drivers.service
+
+[Install]
+WantedBy=graphical.target
+Also=decapx-drivers.service decapx-xorg-wait-for-startup.service
+
+[Service]
+Type=simple
+ExecStartPre=/boot/container/extra/decapx/scripts/decapx-configure-xorg
+ExecStart=Xorg vt7 -noreset -novtswitch -sharevts -dpi 72 +extension GLX +extension RANDR +extension RENDER +extension MIT_SHM :0

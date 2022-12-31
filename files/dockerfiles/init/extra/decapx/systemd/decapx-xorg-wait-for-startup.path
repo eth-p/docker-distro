@@ -1,0 +1,11 @@
+[Unit]
+Description=Waits for Xorg server to come online
+After=multi-user.target
+Requires=multi-user.target
+
+[Install]
+WantedBy=graphical.target
+
+[Path]
+PathExists=/tmp/.X11-unix/X0
+Unit=decapx-xorg-wait-for-startup.path

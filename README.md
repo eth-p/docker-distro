@@ -10,6 +10,7 @@ A guide and environment for creating a working Linux distro inside a Docker cont
 - VMs have higher I/O overhead.
 - Most importantly, because you can.
 - To learn about Linux, root pivoting, and the entire init process to multi-user mode.
+- *New:* You have an Nvidia GPU but can't get PCI passthrough working inside a VM.
 
 ## Prerequisites
 
@@ -26,3 +27,9 @@ A guide and environment for creating a working Linux distro inside a Docker cont
 [03: Migrate to Multi-user Mode](./guide/03-multiuser.md)  
 [04: Basic Command-Line Setup](./guide/04-cli-setup.md)  
 [05: Networking Goodies](./guide/05-networking.md)  
+
+### Extras
+
+[GPU Acceleration (Nvidia)](./guide/xx-gpu-nvidia.md)  
+> Get a hardware-accelerated desktop environment with full OpenGL, Vulkan, and NVENC support.  
+> Note: *REQUIRES* Nvidia GPU; Does not support Intel or AMD.

@@ -1,0 +1,13 @@
+[Unit]
+Description=NVIDIA driver update
+After=multi-user.target network-online.target
+Wants=network-online.target
+Requires=multi-user.target
+
+[Install]
+WantedBy=decapx-xorg.service
+
+[Service]
+Type=oneshot
+ExecStart=/boot/container/extra/decapx/scripts/decapx-update-nvidia
+RemainAfterExit=true

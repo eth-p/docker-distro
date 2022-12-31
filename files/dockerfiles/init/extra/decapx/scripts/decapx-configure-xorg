@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+# Using information from the amazing docker-nvidia-glx-desktop project:
+# https://github.com/ehfd/docker-nvidia-glx-desktop/blob/main/entrypoint.sh
+set -ueo pipefail
+
+# Defaults
+MONITOR_SIZE_WIDTH="${MONITOR_SIZE_WIDTH:-1280}"
+MONITOR_SIZE_HEIGHT="${MONITOR_SIZE_HEIGHT:-720}"
+MONITOR_COLOR_DEPTH="${MONITOR_COLOR_DEPTH:-24}"
+MONITOR_HZ="${MONITOR_HZ:-60}"
+VIDEO_PORT="${VIDEO_PORT:-DFP}"
+
+# -----------------------------------------------------------------------------
+# GPU Query
+# -----------------------------------------------------------------------------
+
+# Pick the first available GPU.
+#
+# If GPU_ID was passed to this script as an environment variable,
+# trust that is correct and use that instead.
+if [[ -z "${GPU_ID:-}" ]]; then
+	printf "\x1B[33mDetecting first GPU. Manually provide GPU_ID env var if desired.\x1B[0m\n"
+	GPU_ID="$(nvidia-smi --query-gpu=uuid --format=csv | sed -n 2p)"
+fi
+
+GPU_NAME="$(nvidia-smi --id="${GPU_ID}" --query-gpu=name --format=csv | sed -n 2p)"
+printf "\x1B[34mUsing GPU \x1B[0m%s\x1B[34m (\x1B[0m%s\x1B[34m)\x1B[0m\n" \
+	"$GPU_NAME" \
+	"$GPU_ID"
+
+# Get the bus ID for the GPU.
+# Source: https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L89-L93
+HEX_ID=$(sudo nvidia-smi --query-gpu=pci.bus_id --id="$GPU_ID" --format=csv | sed -n 2p)
+IFS=":." ARR_ID=($HEX_ID); unset IFS
+BUS_ID=PCI:$((16#${ARR_ID[1]})):$((16#${ARR_ID[2]})):$((16#${ARR_ID[3]}))
+
+# -----------------------------------------------------------------------------
+# Xorg Configuration
+# -----------------------------------------------------------------------------
+
+printf "\x1B[33mConfiguring Xorg.\x1B[0m"
+
+# Allow xorg to be started from a pty.
+# Source: https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L50-L56
+if ! [[ -f /etc/X11/Xwrapper.config ]]; then
+cat >/etc/X11/Xwrapper.config <<EOF
+allowed_users=anybody
+needs_root_rights=yes
+EOF
+elif grep -Fxq "allowed_users=console" /etc/X11/Xwrapper.config; then
+	sed -i "s/allowed_users=console/allowed_users=anybody/;$ a needs_root_rights=yes" /etc/X11/Xwrapper.config
+fi
+
+# Replace xorg configuration with a new one.
+if [[ -f "/etc/X11/xorg.conf" ]]; then
+	rm "/etc/X11/xorg.conf"
+fi
+
+if [ "${VIDEO_PORT,,}" = "none" ]; then
+	CONNECTED_MONITOR="--use-display-device=None"
+else
+	CONNECTED_MONITOR="--connected-monitor=${VIDEO_PORT}"
+fi
+
+export MODELINE=$(cvt -r "${MONITOR_SIZE_WIDTH}" "${MONITOR_SIZE_HEIGHT}" "${MONITOR_HZ}" | sed -n 2p)
+nvidia-xconfig \
+	--virtual="${MONITOR_SIZE_WIDTH}x${MONITOR_SIZE_HEIGHT}" \
+	--depth="$MONITOR_COLOR_DEPTH" \
+	--mode=$(echo "$MODELINE" | awk '{print $2}' | tr -d '"') \
+	--allow-empty-initial-configuration \
+	--no-probe-all-gpus \
+	--busid="$BUS_ID" \
+	--no-multigpu \
+	--no-sli \
+	--no-base-mosaic \
+	--only-one-x-screen \
+	${CONNECTED_MONITOR}
+
+# Guarantee that the X server starts without a monitor by adding more options to the configuration
+# https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L98-L99
+sed -i '/Driver\s\+"nvidia"/a\    Option         "ModeValidation" "NoMaxPClkCheck, NoEdidMaxPClkCheck, NoMaxSizeCheck, NoHorizSyncCheck, NoVertRefreshCheck, NoVirtualSizeCheck, NoExtendedGpuCapabilitiesCheck, NoTotalSizeCheck, NoDualLinkDVICheck, NoDisplayPortBandwidthCheck, AllowNon3DVisionModes, AllowNonHDMI3DModes, AllowNonEdidModes, NoEdidHDMI2Check, AllowDpInterlaced"\n    Option         "HardDPMS" "False"' /etc/X11/xorg.conf
+
+# Add custom generated modeline to the configuration
+# https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L100-L101
+sed -i '/Section\s\+"Monitor"/a\    '"$MODELINE" /etc/X11/xorg.conf
+
+# Prevent interference between GPUs, add this to the host or other containers running Xorg as well
+# https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L102-L103
+echo -e "Section \"ServerFlags\"\n    Option \"AutoAddGPU\" \"false\"\nEndSection" | sudo tee -a /etc/X11/xorg.conf > /dev/null

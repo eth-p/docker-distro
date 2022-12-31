@@ -1,0 +1,13 @@
+[Unit]
+Description=Waits for Xorg server to come online
+After=multi-user.target
+Requires=multi-user.target
+
+[Install]
+WantedBy=graphical.target
+Also=decapx-xorg-wait-for-startup.path
+
+[Service]
+Type=oneshot
+ExecStart=/bin/true
+RemainAfterExit=true

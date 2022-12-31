@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+# Using information from the amazing docker-nvidia-glx-desktop project:
+# https://github.com/ehfd/docker-nvidia-glx-desktop/blob/main/entrypoint.sh
+set -ueo pipefail
+
+# -----------------------------------------------------------------------------
+# Driver Query
+# -----------------------------------------------------------------------------
+
+# Determine the kernel nvidia driver version.
+export KERNEL_DRIVER_VERSION=$(head -n1 </proc/driver/nvidia/version | awk '{print $8}')
+printf "\x1B[34mKernel Driver:\x1B[0m    %s\n" "$KERNEL_DRIVER_VERSION"
+
+# Determine the installed container driver version.
+#
+# The important bits will be pulled in through Docker bind mounts, but the xorg support has to
+# be fetched from nvidia's regular driver blobs.
+export CONTAINER_DRIVER_VERSION=$(
+	nvidia-xconfig --version 2>/dev/null \
+		| grep '^nvidia-xconfig' \
+		| sed 's/ \{2,\}/ /' \
+		| cut -d' ' -f3 \
+		|| echo 'uninstalled'
+)
+printf "\x1B[34mContainer Driver:\x1B[0m %s\n" "$CONTAINER_DRIVER_VERSION"
+
+# -----------------------------------------------------------------------------
+# Driver Install
+# -----------------------------------------------------------------------------
+
+# Fetch and extract xorg support.
+# Source: https://github.com/ehfd/docker-nvidia-glx-desktop/blob/0e61177120499ba65d46977a1a89ec488e2cef1c/entrypoint.sh#L25-L48
+if [[ "$CONTAINER_DRIVER_VERSION" != "$KERNEL_DRIVER_VERSION" ]]; then
+	printf "\x1B[33mNeed to update driver.\x1B[0m\n"
+	installer="/tmp/nvidia-drivers-${KERNEL_DRIVER_VERSION}.run"
+	installer_extracted="/tmp/nvidia-drivers-${KERNEL_DRIVER_VERSION}"
+
+	# Download the installer.
+	if ! [[ -f "$installer" ]]; then
+		curl -fL -o "$installer" "https://us.download.nvidia.com/XFree86/Linux-x86_64/${KERNEL_DRIVER_VERSION}/NVIDIA-Linux-x86_64-${KERNEL_DRIVER_VERSION}.run" \
+		|| curl -fL -o "$installer" "https://us.download.nvidia.com/tesla/${KERNEL_DRIVER_VERSION}/NVIDIA-Linux-x86_64-${KERNEL_DRIVER_VERSION}.run" \
+		|| { printf "\x1B[31mFailed to download driver package.\x1B[0m"; rm "$installer"; exit 1; }
+	fi
+
+	# Extract the installer.
+	if ! [[ -d "$installer_extracted" ]]; then
+			(cd /tmp && sh "$installer" -x --target "$installer_extracted")
+	fi
+
+	# Run the installer.
+	(
+		cd "$installer_extracted"
+		./nvidia-installer --silent \
+			--no-kernel-module \
+			--install-compat32-libs \
+			--no-nouveau-check \
+			--no-nvidia-modprobe \
+			--no-rpms \
+			--no-backup \
+			--no-check-for-alternate-installs \
+			| sed "/^\$/d; /^ERROR: Unable to create '[^']*' for copying (Read-only file system)/d"
+
+		rm -rf "$installer_extracted" "$installer"
+	)
+
+	# Run ldconfig to make sure nvidia tools pick up the shared libraries.
+	ldconfig
+fi
