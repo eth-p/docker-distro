@@ -68,3 +68,14 @@ TODO Guide:
         - Chrome misbehaving means CEF misbehaves, meaning Steam doesn't work.
 
 **End result:** Steam Remote Play
+
+
+## Footgun Fix: bwrap/flatpak
+
+Due to mounts added under `/proc` by the NVIDIA container runtime (likely for isolation purposes), the kernel refuses to mount a new procfs within a container. This problem can be verified by running `unshare -Upf --mount-proc`, which will fail under this condition.
+
+A simple (albeit very likely *insecure/unsafe* solution) is to unmount everything under `/proc` except `/proc` itself:
+
+```bash
+cat /proc/mounts | awk '{ print $2 }' | grep '^/proc/' | sort -r | xargs -l umount
+```

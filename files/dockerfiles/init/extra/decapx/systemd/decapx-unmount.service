@@ -1,0 +1,12 @@
+[Unit]
+Description=Remove mounts for the NVIDIA GPU
+After=decapx-xorg-wait-for-startup.service
+Requires=decapx-xorg-wait-for-startup.service
+
+[Install]
+WantedBy=graphical.target
+
+[Service]
+Type=simple
+ExecStart=bash -c "cat /proc/mounts | awk '{ print $2 }' | grep '^/proc/' | sort -r | xargs -l umount"
+RemainAfterExit=true
